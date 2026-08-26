@@ -1,0 +1,44 @@
+name: Build MDS APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK components
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Download Gradle 8.7
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+
+      - name: Build debug APK
+        run: ./gradle-8.7/bin/gradle assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk output/MDS_Aurad_Syadziliyyah_v1.0.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MDS-APK
+          path: output/MDS_Aurad_Syadziliyyah_v1.0.apk
+          if-no-files-found: error
