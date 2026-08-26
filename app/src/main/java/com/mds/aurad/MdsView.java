@@ -20,7 +20,6 @@ public class MdsView extends View {
 
     public MdsView(Context c) {
         super(c);
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         prefs = c.getSharedPreferences("mds_state", Context.MODE_PRIVATE);
         logo = load(c, R.drawable.logo_mds);
         intro1 = load(c, R.drawable.intro_1);
@@ -88,10 +87,13 @@ public class MdsView extends View {
     private void drawPage(Canvas c,String title,String first,String key,int target,String second,String key2,int target2){
         float w=getWidth(),h=getHeight(); header(c,title.isEmpty()?"":title); float top=h*.23f;
         if(!first.isEmpty()){
-            top=drawParagraph(c,first,w*.10f,w*.90f,top,latin?32:36);
+            top=drawParagraph(c,first,w*.08f,w*.92f,top,latin?40:46);
             if(key!=null){top=drawCounter(c,key,target,top+16);}
         }
-        if(second!=null){ top=drawParagraph(c,second,w*.10f,w*.90f,top+28,latin?30:34); if(key2!=null)top=drawCounter(c,key2,target2,top+16); }
+        if(second!=null){
+    top=drawParagraph(c,second,w*.08f,w*.92f,top+32,latin?38:44);
+    if(key2!=null) top=drawCounter(c,key2,target2,top+20);
+        }
         drawFooter(c);
     }
 
@@ -109,24 +111,176 @@ public class MdsView extends View {
         ArrayList<String> out=new ArrayList<>(); String[] words=s.trim().split(" ");String cur="";
         for(String z:words){String n=cur.isEmpty()?z:cur+" "+z;if(paint.measureText(n)>width && !cur.isEmpty()){out.add(cur);cur=z;}else cur=n;}if(!cur.isEmpty())out.add(cur);return out;
     }
-    private float drawCounter(Canvas c,String key,int target,float y){
-        float w=getWidth();int n=counts.get(key);p.setTextAlign(Paint.Align.CENTER);p.setTypeface(Typeface.DEFAULT_BOLD);p.setColor(GOLD);p.setTextSize(42);c.drawText(n+" / "+target,w/2,y,p);y+=20;
-        RectF hit=new RectF(w*.30f,y,w*.70f,y+w*.16f);c.drawOval(hit,stroke);p.setColor(Color.WHITE);p.setTextSize(42);c.drawText("HITUNG",w/2,y+w*.095f,p);return y+w*.18f;
+    private float drawCounter(Canvas c, String key, int target, float y) {
+    float w = getWidth();
+    int n = counts.get(key);
+
+    p.setTextAlign(Paint.Align.CENTER);
+    p.setTypeface(Typeface.DEFAULT_BOLD);
+
+    // Angka hitungan
+    p.setColor(GOLD);
+    p.setTextSize(w * .055f);
+    c.drawText(n + " / " + target, w / 2, y, p);
+
+    y += w * .025f;
+
+    // Tombol HITUNG lebih besar
+    RectF hit = new RectF(
+        w * .22f,
+        y,
+        w * .78f,
+        y + w * .19f
+    );
+
+    c.drawOval(hit, stroke);
+
+    p.setColor(Color.WHITE);
+    p.setTextSize(w * .055f);
+    c.drawText(
+        "HITUNG",
+        w / 2,
+        hit.centerY() + p.getTextSize() * .35f,
+        p
+    );
+
+    y = hit.bottom + w * .025f;
+
+    // Tombol RESET
+    RectF reset = new RectF(
+        w * .37f,
+        y,
+        w * .63f,
+        y + w * .10f
+    );
+
+    p.setColor(BG);
+    c.drawRoundRect(reset, 20, 20, p);
+    c.drawRoundRect(reset, 20, 20, stroke);
+
+    p.setColor(GOLD);
+    p.setTextSize(w * .032f);
+    c.drawText(
+        "RESET",
+        reset.centerX(),
+        reset.centerY() + p.getTextSize() * .35f,
+        p
+    );
+
+    return reset.bottom + w * .035f;
+        }
     }
     private void drawFooter(Canvas c){float w=getWidth(),h=getHeight();String swap=latin?"GANTI KE TEKS ARAB":"GANTI KE TEKS LATIN";button(c,new RectF(w*.10f,h*.83f,w*.90f,h*.89f),swap,false);button(c,new RectF(w*.07f,h*.91f,w*.47f,h*.975f),"‹  KEMBALI",false);button(c,new RectF(w*.53f,h*.91f,w*.93f,h*.975f),page==12?"SELESAI  ✓":"LANJUT  ›",true);}
     private void button(Canvas c,RectF r,String label,boolean fill){p.setColor(fill?GOLD:BG);c.drawRoundRect(r,18,18,p);c.drawRoundRect(r,18,18,stroke);p.setColor(fill?Color.BLACK:Color.WHITE);p.setTextAlign(Paint.Align.CENTER);p.setTextSize(getWidth()*.04f);p.setTypeface(Typeface.DEFAULT_BOLD);c.drawText(label,r.centerX(),r.centerY()+p.getTextSize()*.35f,p);}
 
-    @Override public boolean onTouchEvent(android.view.MotionEvent e){
-        if(e.getAction()!=MotionEvent.ACTION_UP)return true;float x=e.getX(),y=e.getY(),w=getWidth(),h=getHeight();
-        if(page==1){page=2;invalidate();return true;}
-        if(page==2){ if(x<w*.5f){page=1;}else page=3;invalidate();return true;}
-        if(page==3){if(y>h*.38f&&y<h*.78f){latin=y>h*.57f;page=4;invalidate();}return true;}
-        if(y>h*.82f&&y<h*.90f){latin=!latin;invalidate();return true;}
-        if(y>h*.90f){if(x<w*.5f){page=Math.max(1,page-1);}else{if(page==12){((Activity)getContext()).finish();}else page++;}invalidate();return true;}
-        // Counter taps on upper/middle area: increment the first active counter of the page.
-        String k=null;if(page==4)k=y<h*.55f?"p4a":"p4b";else if(page==5)k="p5";else if(page==7)k="p7";else if(page==8)k="p8";else if(page==9)k="p9";
-        if(k!=null){int max=k.equals("p4a")||k.equals("p4b")||k.equals("p9")?3:99;int n=Math.min(max,counts.get(k)+1);counts.put(k,n);prefs.edit().putInt(k,n).apply();invalidate();}
+    @Override
+public boolean onTouchEvent(android.view.MotionEvent e) {
+    if (e.getAction() != MotionEvent.ACTION_UP) return true;
+
+    float x = e.getX();
+    float y = e.getY();
+    float w = getWidth();
+    float h = getHeight();
+
+    // HALAMAN 1
+    if (page == 1) {
+        page = 2;
+        invalidate();
         return true;
+    }
+
+    // HALAMAN 2
+    if (page == 2) {
+        if (x < w * .5f) {
+            page = 1;
+        } else {
+            page = 3;
+        }
+        invalidate();
+        return true;
+    }
+
+    // HALAMAN 3
+    if (page == 3) {
+        if (y > h * .38f && y < h * .78f) {
+            latin = y > h * .57f;
+            page = 4;
+        }
+
+        if (y > h * .82f && y < h * .90f) {
+            latin = !latin;
+        }
+
+        invalidate();
+        return true;
+    }
+
+    // HALAMAN DZIKIR 4 - 11
+    if (page >= 4 && page <= 11) {
+
+        String k = null;
+
+        if (page == 4) k = "p4a";
+        else if (page == 5) k = "p4b";
+        else if (page == 6) k = "p5";
+        else if (page == 7) k = "p6";
+        else if (page == 8) k = "p7";
+        else if (page == 9) k = "p8";
+        else if (page == 10) k = "p9";
+        else if (page == 11) k = "p10";
+
+        // Tombol RESET
+        if (reset != null && reset.contains(x, y)) {
+            if (k != null) {
+                counts.put(k, 0);
+            }
+            invalidate();
+            return true;
+        }
+
+        // Tombol HITUNG
+        if (hit != null && hit.contains(x, y)) {
+            if (k != null) {
+                int max = k.equals("p4a") || k.equals("p4b")
+                        ? 3
+                        : 33;
+
+                int jumlah = counts.containsKey(k)
+                        ? counts.get(k)
+                        : 0;
+
+                if (jumlah < max) {
+                    counts.put(k, jumlah + 1);
+                }
+            }
+
+            invalidate();
+            return true;
+        }
+
+        // Tombol KEMBALI
+        if (y > h * .90f && x < w * .5f) {
+            page = Math.max(3, page - 1);
+            invalidate();
+            return true;
+        }
+
+        // Tombol LANJUT
+        if (y > h * .90f && x >= w * .5f) {
+            page = page + 1;
+            invalidate();
+            return true;
+        }
+    }
+
+    // HALAMAN TERAKHIR
+    if (page == 12) {
+        ((Activity) getContext()).finish();
+        return true;
+    }
+
+    return true;
+}
     }
 
     private void drawTextPage(Canvas c,String title,String text,boolean arab){header(c,title);drawPage(c,title,text,null,0,null,null,0);}
